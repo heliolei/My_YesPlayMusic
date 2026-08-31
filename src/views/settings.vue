@@ -86,6 +86,7 @@
             <option value="auto">{{ $t('settings.trayIcon.auto') }}</option>
             <option value="light">{{ $t('settings.trayIcon.light') }}</option>
             <option value="dark">{{ $t('settings.trayIcon.dark') }}</option>
+            <option value="color">{{ $t('settings.trayIcon.color') }}</option>
           </select>
         </div>
       </div>

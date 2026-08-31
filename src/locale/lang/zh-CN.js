@@ -182,6 +182,7 @@ export default {
       auto: '自动',
       light: '浅色',
       dark: '深色',
+      color: '彩色',
     },
     automaticallyCacheSongs: '自动缓存歌曲',
     clearSongsCache: '清除歌曲缓存',

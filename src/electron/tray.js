@@ -3,13 +3,42 @@ import path from 'path';
 import { app, nativeImage, Tray, Menu, nativeTheme } from 'electron';
 import { isLinux } from '@/utils/platform';
 
+// menu-dark/light@88.png 是纯剪影（为 macOS 菜单栏的 template image 规范准备的）。
+// Linux 桌面的面板（GNOME 顶栏、KDE 任务栏）无论系统是浅色还是深色主题都是深色底，
+// 按 nativeTheme 推出来的 'dark' 剪影贴上去就是黑底黑图，所以 Linux 下 auto 用彩色图标。
+function resolveTrayIconTheme(store) {
+  const trayIconSetting = store.get('settings.trayIconTheme') || 'auto';
+  if (trayIconSetting !== 'auto') return trayIconSetting;
+  if (isLinux) return 'color';
+  return nativeTheme.shouldUseDarkColors ? 'light' : 'dark';
+}
+
+function createTrayIcon(store) {
+  const iconTheme = resolveTrayIconTheme(store);
+  return nativeImage
+    .createFromPath(path.join(__static, `img/icons/menu-${iconTheme}@88.png`))
+    .resize({
+      height: 20,
+      width: 20,
+    });
+}
+
+// GNOME Shell / KDE 把 indicator 的右键菜单画成深色底（本机实测 #36363A），
+// 而 play/pause/... 这 8 个 16x16 字形是纯黑的，贴上去对比度只有约 1.7:1，基本看不见。
+// Linux 下换成同形状的白色字形 *-light.png（只把 RGB 置白，alpha 逐像素不变）。
+const MENU_ICON_SUFFIX = isLinux ? '-light' : '';
+
+function menuItemIcon(name) {
+  return nativeImage.createFromPath(
+    path.join(__static, `img/icons/${name}${MENU_ICON_SUFFIX}.png`)
+  );
+}
+
 function createMenuTemplate(win) {
   return [
     {
       label: '播放',
-      icon: nativeImage.createFromPath(
-        path.join(__static, 'img/icons/play.png')
-      ),
+      icon: menuItemIcon('play'),
       click: () => {
         win.webContents.send('play');
       },
@@ -17,9 +46,7 @@ function createMenuTemplate(win) {
     },
     {
       label: '暂停',
-      icon: nativeImage.createFromPath(
-        path.join(__static, 'img/icons/pause.png')
-      ),
+      icon: menuItemIcon('pause'),
       click: () => {
         win.webContents.send('play');
       },
@@ -28,9 +55,7 @@ function createMenuTemplate(win) {
     },
     {
       label: '上一首',
-      icon: nativeImage.createFromPath(
-        path.join(__static, 'img/icons/left.png')
-      ),
+      icon: menuItemIcon('left'),
       accelerator: 'CmdOrCtrl+Left',
       click: () => {
         win.webContents.send('previous');
@@ -38,9 +63,7 @@ function createMenuTemplate(win) {
     },
     {
       label: '下一首',
-      icon: nativeImage.createFromPath(
-        path.join(__static, 'img/icons/right.png')
-      ),
+      icon: menuItemIcon('right'),
       accelerator: 'CmdOrCtrl+Right',
       click: () => {
         win.webContents.send('next');
@@ -48,9 +71,7 @@ function createMenuTemplate(win) {
     },
     {
       label: '循环播放',
-      icon: nativeImage.createFromPath(
-        path.join(__static, 'img/icons/repeat.png')
-      ),
+      icon: menuItemIcon('repeat'),
       accelerator: 'Alt+R',
       click: () => {
         win.webContents.send('repeat');
@@ -58,9 +79,7 @@ function createMenuTemplate(win) {
     },
     {
       label: '加入喜欢',
-      icon: nativeImage.createFromPath(
-        path.join(__static, 'img/icons/like.png')
-      ),
+      icon: menuItemIcon('like'),
       accelerator: 'CmdOrCtrl+L',
       click: () => {
         win.webContents.send('like');
@@ -69,9 +88,7 @@ function createMenuTemplate(win) {
     },
     {
       label: '取消喜欢',
-      icon: nativeImage.createFromPath(
-        path.join(__static, 'img/icons/unlike.png')
-      ),
+      icon: menuItemIcon('unlike'),
       accelerator: 'CmdOrCtrl+L',
       click: () => {
         win.webContents.send('like');
@@ -81,9 +98,7 @@ function createMenuTemplate(win) {
     },
     {
       label: '退出',
-      icon: nativeImage.createFromPath(
-        path.join(__static, 'img/icons/exit.png')
-      ),
+      icon: menuItemIcon('exit'),
       accelerator: 'CmdOrCtrl+W',
       click: () => {
         app.exit();
@@ -153,22 +168,7 @@ class YPMTrayLinuxImpl {
   }
 
   updateIcon() {
-    let trayIconSetting = this.store.get('settings.trayIconTheme') || 'auto';
-    let iconTheme;
-    if (trayIconSetting === 'auto') {
-      iconTheme = nativeTheme.shouldUseDarkColors ? 'light' : 'dark';
-    } else {
-      iconTheme = trayIconSetting;
-    }
-
-    let icon = nativeImage
-      .createFromPath(path.join(__static, `img/icons/menu-${iconTheme}@88.png`))
-      .resize({
-        height: 20,
-        width: 20,
-      });
-
-    this.tray.setImage(icon);
+    this.tray.setImage(createTrayIcon(this.store));
   }
 }
 
@@ -223,42 +223,12 @@ class YPMTrayWindowsImpl {
   }
 
   updateIcon() {
-    let trayIconSetting = this.store.get('settings.trayIconTheme') || 'auto';
-    let iconTheme;
-    if (trayIconSetting === 'auto') {
-      iconTheme = nativeTheme.shouldUseDarkColors ? 'light' : 'dark';
-    } else {
-      iconTheme = trayIconSetting;
-    }
-
-    let icon = nativeImage
-      .createFromPath(path.join(__static, `img/icons/menu-${iconTheme}@88.png`))
-      .resize({
-        height: 20,
-        width: 20,
-      });
-
-    this.tray.setImage(icon);
+    this.tray.setImage(createTrayIcon(this.store));
   }
 }
 
 export function createTray(win, eventEmitter, store) {
-  let trayIconSetting = store.get('settings.trayIconTheme') || 'auto';
-  let iconTheme;
-  if (trayIconSetting === 'auto') {
-    iconTheme = nativeTheme.shouldUseDarkColors ? 'light' : 'dark';
-  } else {
-    iconTheme = trayIconSetting;
-  }
-
-  let icon = nativeImage
-    .createFromPath(path.join(__static, `img/icons/menu-${iconTheme}@88.png`))
-    .resize({
-      height: 20,
-      width: 20,
-    });
-
-  let tray = new Tray(icon);
+  let tray = new Tray(createTrayIcon(store));
   tray.setToolTip('YesPlayMusic');
 
   return isLinux

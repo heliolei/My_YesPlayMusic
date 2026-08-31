@@ -181,6 +181,7 @@ export default {
       auto: 'Auto',
       light: 'Light',
       dark: 'Dark',
+      color: 'Color',
     },
     automaticallyCacheSongs: 'Automatically cache songs',
     clearSongsCache: 'Clear Songs Cache',

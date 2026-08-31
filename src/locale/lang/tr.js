@@ -176,6 +176,7 @@ export default {
       auto: 'Otomatik',
       light: 'Aydınlık',
       dark: 'Karanlık',
+      color: 'Renkli',
     },
     automaticallyCacheSongs: 'Müzikleri otomatik çerezle',
     clearSongsCache: 'Müzik çerezlerini temizle',
